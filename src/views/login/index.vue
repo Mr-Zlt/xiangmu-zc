@@ -3,18 +3,23 @@
     <div class="login-from-wrap">
     <div class="login-head"><img src="./logo_index.png" alt=""></div>
     <div class="login-form">
-        <el-form ref="form" :model="form">
-      <el-form-item>
+        <el-form  :model="form" :rules="rules" ref="ruleForm"  >
+      <el-form-item prop="mobile">
         <el-input v-model="form.mobile" placeholder="手机号"></el-input>
       </el-form-item>
-        <el-form-item>
+        <el-form-item prop="code">
         <el-col :span="10"> <el-input v-model="form.code" placeholder="验证码"> </el-input>
           </el-col>
         <el-col :span="10"><el-button @click="handSendCode">获取验证码</el-button>
         </el-col>
       </el-form-item>
       <el-form-item>
-        <el-button class="btn-login" type="primary" @click="handleLogin">登陆</el-button>
+        <el-button
+         class="btn-login"
+         type="primary"
+         @click="handleLogin"
+         :loading="loginLoading"
+         >登陆</el-button>
         </el-form-item>
     </el-form>
     </div>
@@ -30,30 +35,55 @@ export default {
   data () {
     return {
       form: {
-        mobile: '15232209272',
+        mobile: '',
         code: ''
+      },
+      loginLoading: false,
+      rules: {
+        mobile: [
+          { required: true, message: '请输入手机号码', trigger: 'blur' },
+          { len: 11, max: 11, message: '长度在 1 到 1 个字符', trigger: 'blur' }
+        ],
+        code: [
+          { required: true, message: '请输入验证码', trigger: 'blur' },
+          { len: 6, max: 6, message: '长度在 6 到 6 个字符', trigger: 'blur' }
+        ]
       },
       captchaObj: null
     }
   },
   methods: {
     handleLogin () {
+      this.$refs[ 'ruleForm' ].validate(valid => {
+        if (!valid) {
+          return
+        }
+        this.submitLogin()
+      })
+    },
+    submitLogin () {
+      this.loginLoading = true
       axios({
-        method:'POST',
+        method: 'POST',
         url: 'http://ttapi.research.itcast.cn/mp/v1_0/authorizations',
-        data:this.form
-      }).then(res=>{
-          this.$message({
+        data: this.form
+      }).then(res => {
+        this.$message({
           message: '恭喜你，这是一条成功消息',
           type: 'success'
         })
+        this.loginLoading = false
         this.$router.push({
-           name:'home'
+          name: 'home'
         })
-      }).catch(err=>{
-        this.$message.error('登陆失败，手机号或验证码错误')
+      }).catch(err => {
+        if (err.response.status === 400) {
+          this.$message.error('登陆失败，手机或验证码错误')
+          this.loginLoading = false
+        }
       })
     },
+
     handSendCode () {
       const { mobile } = this.form
       if (this.captchaObj) {
@@ -78,21 +108,21 @@ export default {
           captchaObj.onReady(function () {
             captchaObj.verify() // 显示验证码
           }).onSuccess(function () {
-            const{ geetest_challenge: challenge,
-             geetest_challenge: seccode,
-              geetest_validate: validate }= 
+            const { geetest_challenge: challenge,
+              geetest_challenge: seccode,
+              geetest_validate: validate } =
               captchaObj.getValidate()
-               axios({
-                 method:'GET',
-                 url:`http://ttapi.research.itcast.cn/mp/v1_0/sms/codes/${mobile}`,
-                 params: {
-                   challenge,
-                   seccode,
-                   validate
-                 }
-               }).then(res=>{
-                 console.log(res.data)
-               })
+            axios({
+              method: 'GET',
+              url: `http://ttapi.research.itcast.cn/mp/v1_0/sms/codes/${mobile}`,
+              params: {
+                challenge,
+                seccode,
+                validate
+              }
+            }).then(res => {
+              console.log(res.data)
+            })
           })
         })
       })
