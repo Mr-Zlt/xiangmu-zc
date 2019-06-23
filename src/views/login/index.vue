@@ -13,6 +13,10 @@
         <el-col :span="10"><el-button @click="handSendCode">获取验证码</el-button>
         </el-col>
       </el-form-item>
+       <el-from-item>
+          <el-checkbox v-model="form.agree"></el-checkbox>
+          <span>我已阅读并同意<a href="#">用户协议</a>和 <a href="#">隐私条款</a></span>
+        </el-from-item>
       <el-form-item>
         <el-button
          class="btn-login"
@@ -36,7 +40,8 @@ export default {
     return {
       form: {
         mobile: '',
-        code: ''
+        code: '',
+        agree: ''
       },
       loginLoading: false,
       rules: {
@@ -47,6 +52,10 @@ export default {
         code: [
           { required: true, message: '请输入验证码', trigger: 'blur' },
           { len: 6, max: 6, message: '长度在 6 到 6 个字符', trigger: 'blur' }
+        ],
+        agree: [
+          { required: true, message: '请同意用户协议', trigger: 'change' },
+          { pattern: /true/, message: '请同意用户协议', trigger: 'change' }
         ]
       },
       captchaObj: null
