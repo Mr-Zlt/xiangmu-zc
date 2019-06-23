@@ -14,7 +14,7 @@
         </el-col>
       </el-form-item>
       <el-form-item>
-        <el-button class="btn-login" type="primary" @click="onSubmit">登陆</el-button>
+        <el-button class="btn-login" type="primary" @click="handleLogin">登陆</el-button>
         </el-form-item>
     </el-form>
     </div>
@@ -30,15 +30,29 @@ export default {
   data () {
     return {
       form: {
-        mobile: '',
+        mobile: '15232209272',
         code: ''
       },
       captchaObj: null
     }
   },
   methods: {
-    onSubmit () {
-      console.log('submit!')
+    handleLogin () {
+      axios({
+        method:'POST',
+        url: 'http://ttapi.research.itcast.cn/mp/v1_0/authorizations',
+        data:this.form
+      }).then(res=>{
+          this.$message({
+          message: '恭喜你，这是一条成功消息',
+          type: 'success'
+        })
+        this.$router.push({
+           name:'home'
+        })
+      }).catch(err=>{
+        this.$message.error('登陆失败，手机号或验证码错误')
+      })
     },
     handSendCode () {
       const { mobile } = this.form
