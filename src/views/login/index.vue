@@ -10,13 +10,18 @@
         <el-form-item prop="code">
         <el-col :span="10"> <el-input v-model="form.code" placeholder="验证码"> </el-input>
           </el-col>
-        <el-col :span="10"><el-button @click="handSendCode">获取验证码</el-button>
+        <!-- <el-col :span="10"><el-button @click="handSendCode">获取验证码</el-button> -->
+        <el-col :span="10"><el-button
+         @click="handSendCode"
+         :disabled="!!codeTimer"
+        >
+         {{ codeTimer ? `剩余${codeSecons}秒`: '获取验证码' }}</el-button>
         </el-col>
       </el-form-item>
-       <el-from-item>
+       <el-form-item>
           <el-checkbox v-model="form.agree"></el-checkbox>
           <span>我已阅读并同意<a href="#">用户协议</a>和 <a href="#">隐私条款</a></span>
-        </el-from-item>
+        </el-form-item>
       <el-form-item>
         <el-button
          class="btn-login"
@@ -34,12 +39,13 @@
 <script>
 import axios from 'axios'
 import '@/vendor/gt'
+const initCodeSeconds = 60
 export default {
   name: 'AppLogin',
   data () {
     return {
       form: {
-        mobile: '',
+        mobile: '17515132927',
         code: '',
         agree: ''
       },
@@ -47,7 +53,7 @@ export default {
       rules: {
         mobile: [
           { required: true, message: '请输入手机号码', trigger: 'blur' },
-          { len: 11, max: 11, message: '长度在 1 到 1 个字符', trigger: 'blur' }
+          { len: 11, max: 11, message: '长度在 11 到 11 个字符', trigger: 'blur' }
         ],
         code: [
           { required: true, message: '请输入验证码', trigger: 'blur' },
@@ -58,7 +64,9 @@ export default {
           { pattern: /true/, message: '请同意用户协议', trigger: 'change' }
         ]
       },
-      captchaObj: null
+      captchaObj: null,
+      codeSecons: initCodeSeconds,
+      codeTimer: null
     }
   },
   methods: {
@@ -94,11 +102,18 @@ export default {
     },
 
     handSendCode () {
+      this.$refs[ 'ruleForm' ].validateField('mobile', errorMessage => {
+        if (errorMessage.trim().leng > 0) {
+          return
+        }
+        this.showGeetest()
+      })
+    },
+    showGeetest () {
       const { mobile } = this.form
       if (this.captchaObj) {
         return this.captchaObj.verify()
       }
-
       axios({
         mehtod: 'GET',
         url: `http://ttapi.research.itcast.cn/mp/v1_0/captchas/${mobile}`
@@ -114,13 +129,13 @@ export default {
         }, (captchaObj) => {
           this.captchaObj = captchaObj
           // 这里可以调用验证实例 captchaObj 的实例方法
-          captchaObj.onReady(function () {
+          captchaObj.onReady(() => {
             captchaObj.verify() // 显示验证码
-          }).onSuccess(function () {
+          }).onSuccess(() => {
             const { geetest_challenge: challenge,
               geetest_challenge: seccode,
               geetest_validate: validate } =
-              captchaObj.getValidate()
+            captchaObj.getValidate()
             axios({
               method: 'GET',
               url: `http://ttapi.research.itcast.cn/mp/v1_0/sms/codes/${mobile}`,
@@ -130,11 +145,21 @@ export default {
                 validate
               }
             }).then(res => {
-              console.log(res.data)
+              this.codeCountDown()
             })
           })
         })
       })
+    },
+    codeCountDown () {
+      this.codeTimer = window.setInterval(() => {
+        this.codeSecons--
+        if (!!this.codeSecons <= 0) {
+          this.codeSecons = initCodeSeconds
+          window.clearInterval(this.codeTimer)
+          this.codeTimer = null
+        }
+      }, 1000)
     }
   }
 }
